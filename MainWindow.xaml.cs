@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Text.RegularExpressions;
 
 namespace WpfApp1
 {
@@ -24,7 +25,7 @@ namespace WpfApp1
   {
     public string ffmpegExe;
     public string ffplayExe;
-    public string srcFilePath = "";
+    public string input = "";
     public MainWindow()
     {
       InitializeComponent();
@@ -48,6 +49,15 @@ namespace WpfApp1
         MessageBox.Show("未找到[ffplay.exe]，播放功能无法使用", "错误",MessageBoxButton.OK, MessageBoxImage.Error);
       }
     }
+    
+    /// <summary>
+    /// 返回唯一的时间戳
+    /// </summary>
+    /// <returns></returns>
+    private string getFileKey()
+    {
+      return new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
+    }
 
     private string GetFullPath(string fileName)
     {
@@ -69,8 +79,8 @@ namespace WpfApp1
       string[] filenames = (string[])e.Data.GetData(DataFormats.FileDrop);
       if (filenames.Length > 0)
       {
-        srcFilePath = filenames[0];
-        selectRes.Text = srcFilePath;
+        input = filenames[0];
+        inputFile.Text = input;
       }
     }
 
@@ -79,7 +89,7 @@ namespace WpfApp1
       string[] filenames = (string[])e.Data.GetData(DataFormats.FileDrop);
       if (filenames.Length > 0)
       {
-        inpytAudio.Text = filenames[0];
+        inputAudio.Text = filenames[0];
       }
     }
 
@@ -105,11 +115,11 @@ namespace WpfApp1
     /// <returns></returns>
     private string getOutputFilepath(string extension = "")
     {
-      extension = extension.Length != 0 ? extension : io.Path.GetExtension(srcFilePath);
-      string time = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
+      if (input.Length == 0) return null;
+      extension = extension.Length != 0 ? extension : io.Path.GetExtension(input);
 
-      // xxx/xxx/[time]-oldname.extension
-      return io.Path.GetDirectoryName(srcFilePath) + "\\[" + time + "]-" + io.Path.GetFileNameWithoutExtension(srcFilePath) + extension;
+      // xxx/xxx/[time]oldname.extension
+      return io.Path.Combine(io.Path.GetDirectoryName(input), $"[{getFileKey()}]-{io.Path.GetFileNameWithoutExtension(input)}{extension}");
     }
 
     /// <summary>
@@ -124,8 +134,18 @@ namespace WpfApp1
         Filter = "(*.*)|*.*"
       };
       if (openFileDialog.ShowDialog() == false) return;
-      srcFilePath = openFileDialog.FileName;
-      selectRes.Text = srcFilePath;
+      input = openFileDialog.FileName;
+      inputFile.Text = input;
+    }
+
+    private bool checkNotInputFile()
+    {
+      if (input.Length == 0) 
+      {
+        MessageBox.Show("没有输入文件", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return true;
+      };
+      return false;
     }
     
     /// <summary>
@@ -135,10 +155,10 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click_2(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
-      string dstFilePath = getOutputFilepath();
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath();
       // ffmpeg -i "demo.mp4" -vcodec copy -an "out.mp4"
-      string command = "-i \"" + srcFilePath + "\" -vcodec copy -an \"" + dstFilePath + "\"";
+      string command = "-i \"" + input + "\" -vcodec copy -an \"" + output + "\"";
       execute(command);
     }
 
@@ -149,10 +169,10 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
-      string dstFilePath = getOutputFilepath(".mp3");
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath(".mp3");
       // ffmpeg -i demo.mp4  out.mp3
-      string command = "-i \"" + srcFilePath + "\"  \"" + dstFilePath + "\"";
+      string command = "-i \"" + input + "\"  \"" + output + "\"";
       execute(command);
     }
 
@@ -163,13 +183,13 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click_3(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
+      if (checkNotInputFile()) return;
       if (inputVolume.Text.Length == 0) return;
-      string dstFilePath = getOutputFilepath();
+      string output = getOutputFilepath();
 
       // 视频不变，减少音量
       // ffmpeg - i input.mp4 -vcodec copy -af "volume=-10dB"  out.mp4
-      string command = "-i \"" + srcFilePath + "\" -vcodec copy -af \"volume=" + inputVolume.Text + "\" \"" + dstFilePath + "\"";
+      string command = "-i \"" + input + "\" -vcodec copy -af \"volume=" + inputVolume.Text + "\" \"" + output + "\"";
       execute(command);
     }
   
@@ -180,10 +200,23 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click_5(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
-      string command = "\"" + srcFilePath + "\"";
+      if (checkNotInputFile()) return;
+      string command = $"\"{input}\"";
       System.Diagnostics.Process.Start(ffplayExe, command);
     }
+
+    /// <summary>
+    /// 循环播放输入文件
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_16(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string command = $"-loop 0 \"{input}\"";
+      System.Diagnostics.Process.Start(ffplayExe, command);
+    }
+
 
     /// <summary>
     /// 音频填充视频
@@ -195,14 +228,14 @@ namespace WpfApp1
       // 将10s视频和5s音频合并，输出视频有10s,音频将一直循环
       // ffmpeg -i input.mp4 -stream_loop -1 -i input.mp3 -c copy -map 0:v:0 -map 1:a:0 -shortest out.mp4
 
-      if (srcFilePath.Length == 0) return;
-      if (inpytAudio.Text.Length == 0) return;
+      if (checkNotInputFile()) return;
+      if (inputAudio.Text.Length == 0) return;
 
-      string dstFilePath = getOutputFilepath();
+      string output = getOutputFilepath();
 
       // 从1小时到结尾
       // ffmpeg -ss 01:00:00 -i m.mp4 -c copy out.mp4
-      string command = "-i \"" + srcFilePath + "\" -stream_loop -1 -i \"" + inpytAudio.Text + "\" -c copy -map 0:v:0 -map 1:a:0 -shortest \""+ dstFilePath +"\"";
+      string command = "-i \"" + input + "\" -stream_loop -1 -i \"" + inputAudio.Text + "\" -c copy -map 0:v:0 -map 1:a:0 -shortest \""+ output +"\"";
       execute(command);
     }
 
@@ -213,15 +246,15 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click_7(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
-      if (inpytAudio.Text.Length == 0) return;
+      if (checkNotInputFile()) return;
+      if (inputAudio.Text.Length == 0) return;
 
-      string dstFilePath = getOutputFilepath();
+      string output = getOutputFilepath();
 
       // 将5s视频和10s音频合并，输出视频有10s,视频将一直循环
       // ffmpeg -stream_loop -1 -i input.mp4 -i input.mp3 -c copy -map 0:v:0 -map 1:a:0 -shortest out.mp4
 
-      string command = "-stream_loop -1 -i \""+srcFilePath+"\" -i \""+ inpytAudio.Text +"\" -c copy -map 0:v:0 -map 1:a:0 -shortest \""+ dstFilePath +"\"";
+      string command = "-stream_loop -1 -i \""+input+"\" -i \""+ inputAudio.Text +"\" -c copy -map 0:v:0 -map 1:a:0 -shortest \""+ output +"\"";
       execute(command);
     }
     
@@ -237,7 +270,7 @@ namespace WpfApp1
         Filter = "(*.*)|*.*"
       };
       if (openFileDialog.ShowDialog() == false) return;
-      inpytAudio.Text = openFileDialog.FileName;
+      inputAudio.Text = openFileDialog.FileName;
     }
     
     /// <summary>
@@ -248,11 +281,11 @@ namespace WpfApp1
     private void Button_Click_9(object sender, RoutedEventArgs e)
     {
 
-      if (srcFilePath.Length == 0) return;
-      string dstFilePath = getOutputFilepath();
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath();
 
       // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 1.mp3
-      string command = "-i \"" + srcFilePath + "\" -ss "+ c_1_0.Text +" -t "+ c_1_1.Text +" \"" + dstFilePath + "\"";
+      string command = "-i \"" + input + "\" -ss "+ c_1_0.Text +" -t "+ c_1_1.Text +" \"" + output + "\"";
       execute(command);
     }
 
@@ -264,8 +297,8 @@ namespace WpfApp1
     private void Button_Click_10(object sender, RoutedEventArgs e)
     {
 
-      if (srcFilePath.Length == 0) return;
-      string dstFilePath = getOutputFilepath();
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath();
 
       DateTime start = DateTime.Parse(c_2_0.Text);
       DateTime end = DateTime.Parse(c_2_1.Text);
@@ -276,7 +309,7 @@ namespace WpfApp1
         return;
       }
       // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 1.mp3
-      string command = "-i \"" + srcFilePath + "\" -ss " + c_2_0.Text + " -t " + t.ToString() + " \"" + dstFilePath + "\"";
+      string command = "-i \"" + input + "\" -ss " + c_2_0.Text + " -t " + t.ToString() + " \"" + output + "\"";
       execute(command);
     }
     
@@ -287,12 +320,174 @@ namespace WpfApp1
     /// <param name="e"></param>
     private void Button_Click_11(object sender, RoutedEventArgs e)
     {
-      if (srcFilePath.Length == 0) return;
-      string dstFilePath = getOutputFilepath();
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath();
 
       // 从1小时到结尾
       // ffmpeg -ss 01:00:00 -i m.mp4 -c copy out.mp4
-      string command = "-ss "+ c_3_0.Text + " -i \"" + srcFilePath + "\" -c copy \"" + dstFilePath + "\"";
+      string command = "-ss "+ c_3_0.Text + " -i \"" + input + "\" -c copy \"" + output + "\"";
+      execute(command);
+    }
+
+    private void Button_Click_4(object sender, RoutedEventArgs e)
+    {
+      System.Diagnostics.Process.Start("https://www.linuxuprising.com/2020/01/ffmpeg-how-to-crop-videos-with-examples.html");
+    }
+    
+    /// <summary>
+    /// 裁剪视频
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_12(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath();
+
+      // ffmpeg -i input.mp4 -filter:v "crop=w:h:x:y" -c:a copy output.mp4
+      string command = "-i \"" + input + "\" -filter:v \"crop=" + c_iw.Text + ":" + c_ih.Text + ":" + c_ix.Text + ":" + c_iy.Text + "\" -c:a copy \"" + output + "\"";
+      execute(command);
+    }
+    
+    /// <summary>
+    /// 将视频分为多个片
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_13(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string srcname = io.Path.GetFileNameWithoutExtension(input);
+      string outDir = io.Path.Combine(io.Path.GetDirectoryName(input), $"[{getFileKey()}]-{srcname}");
+      io.Directory.CreateDirectory(outDir);
+
+      string outsegmentname = io.Path.Combine(outDir, $"%0{s_num.Text}d.{Regex.Replace(s_ioext.Text, @"^\.+", "")}");
+
+      // ffmpeg -i input.mp4 -c copy -map 0 -segment_time 00:01:00 -f segment out-%03d.ts
+      string command = $"-i \"{input}\" -c copy -map 0 -segment_time {s_iss.Text} -f segment \"{outsegmentname}\"";
+      execute(command);
+    }
+
+    /// <summary>
+    /// 用户提供合并文件，然后合并分片
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_14(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string outfile = io.Path.Combine(io.Path.GetDirectoryName(input), $"new-{getFileKey()}.mp4");
+
+      // ffmpeg -f concat -safe 0 -i i.txt -c copy out.mp4
+      string command = $"-f concat -safe 0 -i \"{input}\" -c copy \"{outfile}\"";
+      execute(command);
+    }
+
+    private void Button_Click_15(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile() ) return;
+      string odir = io.Path.GetDirectoryName(input);
+      string oextension = io.Path.GetExtension(input);
+      string ocfgifile = io.Path.Combine(odir, "merge.txt");
+      
+      // (for %i in (*.ts) do @echo file 'file:%cd%\%i') > mylist.txt
+      string command = $"/C (for %i in (\"{odir}\\*{oextension}\") do @echo file 'file:%i') > \"{ocfgifile}\"";
+      System.Diagnostics.Process.Start("cmd.exe", command);
+    }
+    
+    /// <summary>
+    /// gif to mp4
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_17(object sender, RoutedEventArgs e)
+    {
+
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath(".mp4");
+
+      // ffmpeg -i input.gif -b:v 0 -crf 20 -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p -f mp4 out2.mp4
+      string command = $"-i \"" + input + "\" -b:v 0 -crf 20 -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -vcodec libx264 -pix_fmt yuv420p -f mp4 \"" + output + "\"";
+      execute(command);
+    }
+
+    /// <summary>
+    /// gif to webm
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_18(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath(".webm");
+
+      // ffmpeg -i input.gif -c vp9  -b:v 0 -crf 20 out3.webm
+      string command = "-i \"" + input + "\" -c vp9  -b:v 0 -crf 40 \"" + output + "\"";
+      execute(command);
+    }
+    
+    /// <summary>
+    /// 视频转GIF
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_19(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+      string output = getOutputFilepath(".gif");
+
+      DateTime start = DateTime.Parse(gv_start.Text);
+      DateTime end = DateTime.Parse(gv_end.Text);
+      int t = (end.Second - start.Second);
+      if(t < 0)
+      {
+        MessageBox.Show("时间不能为负!!!");
+        return;
+      }
+      // ffmpeg -ss 30 -t 3 -i input.mp4 -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 output.gif
+      string command = $"-ss {gv_start.Text} -t {t} -i \"{input}\" -vf \"fps={gv_fps.Text},scale={gv_w.Text}:{gv_h.Text}:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" -loop 0 \"{output}\"";
+      execute(command);
+    }
+    
+    /// <summary>
+    /// 视频中提取图片
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_20(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+
+      DateTime start = DateTime.Parse(getimg_start.Text);
+      DateTime end = DateTime.Parse(getimg_end.Text);
+      int t = (end.Second - start.Second);
+      if(t < 0)
+      {
+        MessageBox.Show("时间不能为负!!!");
+        return;
+      }
+
+      string outDir = io.Path.Combine(io.Path.GetDirectoryName(input), $"[{getFileKey()}]-images");
+      io.Directory.CreateDirectory(outDir);
+      string output = io.Path.Combine(outDir, $"%{getimg_num.Text}d.jpg");
+      // ffmpeg -i 2.mp4 -r 1 -ss 00:00:20 -t 1 -f image2 o-%4d.jpg
+      string command = $"-i \"{input}\" -r {getimg_fps.Text} -ss {getimg_start.Text} -t {t} -f image2 \"{output}\"";
+      execute(command);
+    }
+    
+    /// <summary>
+    /// 将帧图片合成为视频
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_21(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile()) return;
+       string inputImage = io.Path.Combine(io.Path.GetDirectoryName(input), $"%{getimg_num2.Text}d.jpg");
+      string oout = io.Path.Combine(io.Path.GetDirectoryName(input), $"new-{getFileKey()}.mp4");
+
+      // ffmpeg -i %2d.jpg new.mp4
+      string command = $"-i \"{inputImage}\" \"{oout}\"";
       execute(command);
     }
   }
