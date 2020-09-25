@@ -1,5 +1,5 @@
 ﻿using System;
-using fpath = System.IO.Path;
+using io = System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -28,19 +28,40 @@ namespace WpfApp1
     public MainWindow()
     {
       InitializeComponent();
-      this.AllowDrop = true;
-      ffmpegExe = AppDomain.CurrentDomain.BaseDirectory + "ffmpeg.exe";
-      ffplayExe = AppDomain.CurrentDomain.BaseDirectory + "ffplay.exe";
+      // 1. 先在命令行PATH中找ffmpeg
+      // 2. 其次在程序执行目录中ffmpeg
+      // 3. 都没找到退出
 
-      if(System.IO.File.Exists(ffmpegExe) == false)
+      ffmpegExe = GetFullPath("ffmpeg.exe");
+      ffplayExe = GetFullPath("ffplay.exe");
+
+      if(ffmpegExe == null) ffmpegExe = AppDomain.CurrentDomain.BaseDirectory + "ffmpeg.exe";
+      if (ffplayExe == null) ffplayExe = AppDomain.CurrentDomain.BaseDirectory + "ffplay.exe";
+
+      if (System.IO.File.Exists(ffmpegExe) == false)
       {
-        MessageBox.Show("未找到[ffmpeg.exe]", "文件未找到");
+        MessageBox.Show("未找到[ffmpeg.exe]，工具将无法使用", "错误",MessageBoxButton.OK, MessageBoxImage.Error);
+        System.Windows.Application.Current.Shutdown();
       }
-
       if (System.IO.File.Exists(ffplayExe) == false)
       {
-        MessageBox.Show("未找到[ffplay.exe]", "文件未找到");
+        MessageBox.Show("未找到[ffplay.exe]，播放功能无法使用", "错误",MessageBoxButton.OK, MessageBoxImage.Error);
       }
+    }
+
+    private string GetFullPath(string fileName)
+    {
+      if (io.File.Exists(fileName))
+        return io.Path.GetFullPath(fileName);
+
+      var values = Environment.GetEnvironmentVariable("PATH");
+      foreach (var path in values.Split(io.Path.PathSeparator))
+      {
+        var fullPath = io.Path.Combine(path, fileName);
+        if (io.File.Exists(fullPath))
+          return fullPath;
+      }
+      return null;
     }
 
     private void Drop1(object sender, DragEventArgs e)
@@ -84,11 +105,11 @@ namespace WpfApp1
     /// <returns></returns>
     private string getOutputFilepath(string extension = "")
     {
-      extension = extension.Length != 0 ? extension : fpath.GetExtension(srcFilePath);
+      extension = extension.Length != 0 ? extension : io.Path.GetExtension(srcFilePath);
       string time = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
 
       // xxx/xxx/[time]-oldname.extension
-      return fpath.GetDirectoryName(srcFilePath) + "\\[" + time + "]-" + fpath.GetFileNameWithoutExtension(srcFilePath) + extension;
+      return io.Path.GetDirectoryName(srcFilePath) + "\\[" + time + "]-" + io.Path.GetFileNameWithoutExtension(srcFilePath) + extension;
     }
 
     /// <summary>
