@@ -585,5 +585,19 @@ namespace WpfApp1
       string command = $"/C \"(for %i in (\"{newinput}\") do \"{ffmpegExe}\" -i %i \"%~dpi{fkey}\\%~ni{newExtension}\")\"";
       System.Diagnostics.Process.Start("cmd.exe", command);
     }
+    
+    /// <summary>
+    /// 转换视频帧率
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_27(object sender, RoutedEventArgs e)
+    {
+      if (checkNotInputFile() || toFps.Text.Length == 0) return;
+      string oout = getOutputFilepath();
+      // ffmpeg -i 1.mp4 -vf "setpts=1.0*PTS" -c:a copy -r 30 o.mp4
+      string command = $"-i \"{input}\" -vf \"setpts=1.0*PTS\" -c:a copy -r {toFps.Text} \"{oout}\"";
+      execute(command);
+    }
   }
 }
