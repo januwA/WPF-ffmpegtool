@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="转换工具" Height="auto" Width="600" d:DesignHeight="705" >
+        Title="转换工具" Height="auto" Width="600" d:DesignHeight="1005" >
   <Window.Resources>
     <Style TargetType="GroupBox">
       <Setter Property="Margin" Value="0,0,0,8" />
@@ -171,6 +171,20 @@
           <TextBox x:Name="tonewtype" Text=".webp" Width="60" VerticalAlignment="Center"></TextBox>
           <Button Content="转换" VerticalAlignment="Center" Click="Button_Click_24" Margin="8,0,0,0"></Button>
           <Button Content="批量转换" VerticalAlignment="Center" Click="Button_Click_26" Margin="8,0,0,0"></Button>
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="转换视频帧率/比特率">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="帧率转为" VerticalAlignment="Center" Click="Button_Click_27"></Button>
+            <TextBox x:Name="toFps" Text="30" Width="30" VerticalAlignment="Center"></TextBox>
+            <Label Content="fps" VerticalAlignment="Center"></Label>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Button Content="比特率转为" VerticalAlignment="Center" Click="Button_Click_28"></Button>
+            <TextBox x:Name="toBitrate" Text="800k" Width="50" VerticalAlignment="Center"></TextBox>
+          </StackPanel>
         </StackPanel>
       </GroupBox>
     </StackPanel>
