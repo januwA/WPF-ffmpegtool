@@ -2,6 +2,7 @@
 using io = System.IO;
 using System.Windows;
 using System.Text.RegularExpressions;
+using System.Collections;
 
 namespace WpfApp1
 {
@@ -188,22 +189,25 @@ namespace WpfApp1
     private void Button_Click_5(object sender, RoutedEventArgs e)
     {
       if (checkNotInputFile()) return;
-      string command = $"\"{input}\"";
+      ArrayList options = new ArrayList();
+      if (isLoopPlay.IsChecked == true) options.Add("-loop 0");
+      if (t_vn.IsChecked == true) options.Add("-vn");
+      if (t_an.IsChecked == true) options.Add("-an");
+      if (t_noborder.IsChecked == true) options.Add("-noborder");
+
+      string[] size = t_size.Text.Split('x');
+      if (size.Length == 2)
+      {
+        if (size[0].Length != 0) options.Add($"-x {size[0]}");
+        if (size[1].Length != 0) options.Add($"-y {size[1]}");
+      }
+
+      options.Add($"\"{input}\"");
+
+      string command = string.Join(" ", (string[])options.ToArray(Type.GetType("System.String")));
+
       System.Diagnostics.Process.Start(ffplayExe, command);
     }
-
-    /// <summary>
-    /// 循环播放输入文件
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void Button_Click_16(object sender, RoutedEventArgs e)
-    {
-      if (checkNotInputFile()) return;
-      string command = $"-loop 0 \"{input}\"";
-      System.Diagnostics.Process.Start(ffplayExe, command);
-    }
-
 
     /// <summary>
     /// 音频填充视频
@@ -612,6 +616,23 @@ namespace WpfApp1
       // ffmpeg -i 1.mp4 -b:v 1M -c:a copy o.mp4
       string command = $"-i \"{input}\" -b:v {toBitrate.Text} -c:a copy \"{oout}\"";
       execute(command);
+    }
+
+    /// <summary>
+    /// 播放时控制器详情
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void Button_Click_16(object sender, RoutedEventArgs e)
+    {
+      MessageBox.Show(
+        "f 切换全屏\n"+
+        "p 却换暂停\n"+
+        "m 切换静音\n"+
+        "9,0 减少和增加音量\n"+
+        "left/right 向后/向前搜索10秒\n" +
+        "down/up 向后/向前搜索1分钟\n"
+        );
     }
   }
 }

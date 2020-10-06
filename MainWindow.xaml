@@ -21,18 +21,27 @@
         </DockPanel>
       </GroupBox>
       <GroupBox Header="普通工具">
-        <WrapPanel Orientation="Horizontal">
-          <Button Content="去掉视频音轨" Click="Button_Click_2" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Button Content="提取视频音轨" Click="Button_Click" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <StackPanel Orientation="Horizontal"  Margin="0,0,8,0">
-            <Button  Content="调整音量" Click="Button_Click_3" VerticalAlignment="Center"/>
-            <TextBox x:Name="inputVolume" Width="40" VerticalAlignment="Center"  Text="1.0"/>
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="去掉视频音轨" Click="Button_Click_2" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button Content="提取视频音轨" Click="Button_Click" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <StackPanel Orientation="Horizontal"  Margin="0,0,8,0">
+              <Button  Content="调整音量" Click="Button_Click_3" VerticalAlignment="Center"/>
+              <TextBox x:Name="inputVolume" Width="40" VerticalAlignment="Center"  Text="1.0"/>
+            </StackPanel>
+            <Button  Content="下载m3u8到MP4" VerticalAlignment="Center" Click="Button_Click_22" Margin="0,0,8,0"/>
+            <Button Content="转为MP4" VerticalAlignment="Center" Margin="0,0,8,0" Click="Button_Click_23"></Button>
           </StackPanel>
-          <Button  Content="播放"  VerticalAlignment="Center" Click="Button_Click_5" Margin="0,0,8,0"/>
-          <Button  Content="循环播放" VerticalAlignment="Center" Click="Button_Click_16" Margin="0,0,8,0"/>
-          <Button  Content="下载m3u8到MP4" VerticalAlignment="Center" Click="Button_Click_22" Margin="0,0,8,0"/>
-          <Button Content="转为MP4" VerticalAlignment="Center" Margin="0,0,8,0" Click="Button_Click_23"></Button>
-        </WrapPanel>
+          <StackPanel Orientation="Horizontal">
+            <CheckBox x:Name="isLoopPlay" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0">循环</CheckBox>
+            <CheckBox x:Name="t_noborder" VerticalAlignment="Center" Margin="0,0,8,0">无边框</CheckBox>
+            <CheckBox x:Name="t_vn" VerticalAlignment="Center" Margin="0,0,8,0">禁用视频</CheckBox>
+            <CheckBox x:Name="t_an" VerticalAlignment="Center" Margin="0,0,8,0">禁用音频</CheckBox>
+            <TextBox x:Name="t_size" VerticalAlignment="Center" Margin="0,0,4,0">1280x720</TextBox>
+            <Button  Content="播放"  VerticalAlignment="Center" Click="Button_Click_5" Margin="0,0,8,0"/>
+            <Button Content="播放时" VerticalAlignment="Center" Foreground="Blue" BorderBrush="Transparent" Background="Transparent" Click="Button_Click_16"></Button>
+          </StackPanel>
+        </StackPanel>
       </GroupBox>
       <GroupBox Header="合并音视频">
         <StackPanel>
