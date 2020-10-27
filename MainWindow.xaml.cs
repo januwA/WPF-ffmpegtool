@@ -282,8 +282,8 @@ namespace WpfApp1
       if (checkNotInputFile()) return;
       string output = getOutputFilepath();
 
-      // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 1.mp3
-      string command = "-i \"" + input + "\" -ss " + c_1_0.Text + " -t " + c_1_1.Text + " \"" + output + "\"";
+      // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 -c copy 1.mp4
+      string command = $"-i \"{input}\" -ss {c_1_0.Text} -t {c_1_1.Text} -c copy \"{output}\"";
       execute(command);
     }
 
@@ -306,8 +306,8 @@ namespace WpfApp1
         MessageBox.Show("切割时间不能为负!!!");
         return;
       }
-      // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 1.mp3
-      string command = "-i \"" + input + "\" -ss " + c_2_0.Text + " -t " + t.ToString() + " \"" + output + "\"";
+      // ffmpeg -i input.mp4 -ss 00:00:00 -t 10 -c copy 1.mp3
+      string command = $"-i \"{input}\" -ss {c_2_0.Text} -t {t} -c copy \"{output}\"";
       execute(command);
     }
 
